@@ -144,11 +144,12 @@
 	height: 9999px;
 }
 
-body {
+.citation-dialog.editor {
 	padding: 0 2px 0 2px;
 	margin: 0;
 	font: -moz-field;
 	overflow: hidden;
+	outline: none;
 }
 
 .citation-dialog.spinner {

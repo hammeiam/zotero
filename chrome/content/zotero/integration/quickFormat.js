@@ -33,7 +33,7 @@ var Zotero_QuickFormat = new function () {
 	const charRe = /[\w\u007F-\uFFFF]/;
 	const numRe = /^[0-9\-–]+$/;
 	
-	var initialized, io, qfs, qfi, qfiWindow, qfiDocument, qfe, qfb, qfbHeight, qfGuidance,
+	var initialized, io, qfs, qfe, qfb, qfbHeight, qfGuidance,
 		keepSorted, showEditor, referencePanel, referenceBox, referenceHeight = 0,
 		separatorHeight = 0, currentLocator, currentLocatorLabel, currentSearchTime, dragging,
 		panel, panelPrefix, panelSuffix, panelSuppressAuthor, panelLocatorLabel, panelLocator,
@@ -50,6 +50,8 @@ var Zotero_QuickFormat = new function () {
 	 */
 	this.onDOMContentLoaded = function(event) {
 		if(event.target === document) {
+			Zotero.debug('-----=-=-=-=');
+			Zotero.debug("GOT THE DOCUMENT");
 			initialized = true;
 			io = window.arguments[0].wrappedJSObject;
 
@@ -76,7 +78,6 @@ var Zotero_QuickFormat = new function () {
 			new WindowDraggingElement(document.querySelector("window.citation-dialog"), window);
 			
 			qfs = document.querySelector(".citation-dialog.search");
-			qfi = document.querySelector(".citation-dialog.iframe");
 			qfb = document.querySelector(".citation-dialog.entry");
 			qfbHeight = qfb.scrollHeight;
 			referencePanel = document.querySelector(".citation-dialog.reference-panel");
@@ -135,12 +136,10 @@ var Zotero_QuickFormat = new function () {
 			if(Zotero.isMac || Zotero.isWin) {
 				referencePanel.setAttribute("noautohide", true);
 			}
-		} else if (event.target === qfi.contentDocument) {
-			qfiWindow = qfi.contentWindow;
-			qfiDocument = qfi.contentDocument;
+			
 			qfb.addEventListener("click", _onQuickSearchClick, false);
 			qfb.addEventListener("keypress", _onQuickSearchKeyPress, false);
-			qfe = qfiDocument.querySelector(".citation-dialog.editor");
+			qfe = document.querySelector(".citation-dialog.editor");
 			qfe.addEventListener("drop", _onBubbleDrop, false);
 			qfe.addEventListener("paste", _onPaste, false);
 			if (Zotero_QuickFormat.citingNotes) {
@@ -154,6 +153,7 @@ var Zotero_QuickFormat = new function () {
 	 */
 	this.onLoad = async function (event) {
 		try {
+			Zotero.debug("ON LOAD");
 			if (event.target !== document) return;
 			// make sure we are visible
 			let resizePromise = (async function () {
@@ -170,7 +170,8 @@ var Zotero_QuickFormat = new function () {
 					window.moveTo(targetX, targetY);
 				}
 				qfGuidance = document.querySelector('.citation-dialog.guidance');
-				qfGuidance && qfGuidance.show();
+				// TEMP: Disabled
+				//qfGuidance && qfGuidance.show();
 				_refocusQfe();
 			})();
 			
@@ -212,7 +213,7 @@ var Zotero_QuickFormat = new function () {
 	 * Gets the content of the text node that the cursor is currently within
 	 */
 	function _getCurrentEditorTextNode() {
-		var selection = qfiWindow.getSelection();
+		var selection = window.getSelection();
 		if (!selection) return false;
 		var range = selection.getRangeAt(0);
 		
@@ -220,10 +221,15 @@ var Zotero_QuickFormat = new function () {
 		if(node !== range.endContainer) return false;
 		if(node.nodeType === Node.TEXT_NODE) return node;
 
-		// Range could be referenced to the body element
+		Zotero.debug('=-=-=');
+		Zotero.debug(node + '');
+		// Range could be referenced to the main editor element
 		if(node === qfe) {
 			var offset = range.startOffset;
 			if(offset !== range.endOffset) return false;
+			Zotero.debug(qfe.outerHTML);
+			Zotero.debug(qfe.childNodes.length);
+			Zotero.debug(offset);
 			node = qfe.childNodes[Math.min(qfe.childNodes.length-1, offset)];
 			if(node.nodeType === Node.TEXT_NODE) return node;
 		}
@@ -688,7 +694,7 @@ var Zotero_QuickFormat = new function () {
 		_buildItemDescription(item, infoNode);
 		
 		// add to rich list item
-		var rll = document.createElement("richlistitem");
+		var rll = document.createXULElement("richlistitem");
 		rll.setAttribute("orient", "vertical");
 		rll.setAttribute("class", "citation-dialog item");
 		rll.setAttribute("zotero-item", item.cslItemID ? item.cslItemID : item.id);
@@ -710,7 +716,7 @@ var Zotero_QuickFormat = new function () {
 		titleNode.setAttribute("value", labelText);
 		
 		// add to rich list item
-		var rll = document.createElement("richlistitem");
+		var rll = document.createXULElement("richlistitem");
 		rll.setAttribute("orient", "vertical");
 		rll.setAttribute("disabled", true);
 		rll.setAttribute("class", loading ? "citation-dialog loading" : "citation-dialog separator");
@@ -786,7 +792,7 @@ var Zotero_QuickFormat = new function () {
 		// It's entirely unintuitive why, but after trying a bunch of things, it looks like using
 		// a XUL label for these things works best. A regular span causes issues with moving the
 		// cursor.
-		var bubble = qfiDocument.createElement("span");
+		var bubble = document.createElement("span");
 		bubble.setAttribute("class", "citation-dialog bubble");
 		bubble.setAttribute("draggable", "true");
 		bubble.textContent = str;
@@ -949,7 +955,7 @@ var Zotero_QuickFormat = new function () {
 			}
 			
 			if(!panelFrameHeight) {
-				panelFrameHeight = referencePanel.boxObject.height - referencePanel.clientHeight;
+				panelFrameHeight = referencePanel.getBoundingClientRect().height - referencePanel.clientHeight;
 				var computedStyle = window.getComputedStyle(referenceBox, null);
 				for(var attr of ["border-top-width", "border-bottom-width"]) {
 					var val = computedStyle.getPropertyValue(attr);
@@ -1050,11 +1056,11 @@ var Zotero_QuickFormat = new function () {
 	 * Move cursor to end of the textbox
 	 */
 	function _moveCursorToEnd() {
-		var nodeRange = qfiDocument.createRange();
+		var nodeRange = document.createRange();
 		nodeRange.selectNode(qfe.lastChild);
 		nodeRange.collapse(false);
 		
-		var selection = qfiWindow.getSelection();
+		var selection = window.getSelection();
 		selection.removeAllRanges();
 		selection.addRange(nodeRange);
 	}
@@ -1176,7 +1182,7 @@ var Zotero_QuickFormat = new function () {
 	 * Get bubbles within the current selection
 	 */
 	function _getSelectedBubble(right) {
-		var selection = qfiWindow.getSelection(),
+		var selection = window.getSelection(),
 			range = selection.getRangeAt(0);
 		qfe.normalize();
 		
@@ -1236,11 +1242,11 @@ var Zotero_QuickFormat = new function () {
 		if (bubble) {
 			event.preventDefault();
 
-			var nodeRange = qfiDocument.createRange();
+			var nodeRange = document.createRange();
 			nodeRange.selectNode(bubble);
 			nodeRange.collapse(false);
 
-			var selection = qfiWindow.getSelection();
+			var selection = window.getSelection();
 			selection.removeAllRanges();
 			selection.addRange(nodeRange);
 		}
@@ -1256,7 +1262,7 @@ var Zotero_QuickFormat = new function () {
 			event.preventDefault();
 			return;
 		}
-		if(qfGuidance) qfGuidance.hide();
+		//if(qfGuidance) qfGuidance.hide();
 		
 		var keyCode = event.keyCode;
 		if (keyCode === event.DOM_VK_RETURN) {
@@ -1288,11 +1294,11 @@ var Zotero_QuickFormat = new function () {
 			if(bubble) {
 				event.preventDefault();
 
-				var nodeRange = qfiDocument.createRange();
+				var nodeRange = document.createRange();
 				nodeRange.selectNode(bubble);
 				nodeRange.collapse(!right);
 
-				var selection = qfiWindow.getSelection();
+				var selection = window.getSelection();
 				selection.removeAllRanges();
 				selection.addRange(nodeRange);
 			}
@@ -1304,11 +1310,11 @@ var Zotero_QuickFormat = new function () {
 				if (bubble) {
 					event.preventDefault();
 
-					var nodeRange = qfiDocument.createRange();
+					var nodeRange = document.createRange();
 					nodeRange.selectNode(bubble);
 					nodeRange.collapse(!right);
 
-					var selection = qfiWindow.getSelection();
+					var selection = window.getSelection();
 					selection.removeAllRanges();
 					selection.addRange(nodeRange);
 				}
@@ -1431,7 +1437,7 @@ var Zotero_QuickFormat = new function () {
 
 		var str = Zotero.Utilities.Internal.getClipboard("text/unicode");
 		if(str) {
-			var selection = qfiWindow.getSelection();
+			var selection = window.getSelection();
 			var range = selection.getRangeAt(0);
 			range.deleteContents();
 			range.insertNode(document.createTextNode(str.replace(/[\r\n]/g, " ").trim()));
