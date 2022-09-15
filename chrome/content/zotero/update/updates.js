@@ -406,6 +406,9 @@ var gUpdates = {
         gFinishedPage.onExtra2();
       });
 
+    // Hide default wizard header ("Introduction")
+    gUpdates.wiz.shadowRoot.querySelector('.wizard-header').hidden = true;
+
     // Advance to the Start page.
     this.getStartPageID(function(startPageID) {
       LOG(

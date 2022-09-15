@@ -6,7 +6,6 @@
 
 <?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
 <?xml-stylesheet href="chrome://zotero/content/update/updates.css"?>
-<!--<?xml-stylesheet href="chrome://mozapps/skin/update/updates.css"?>-->
 
 <!DOCTYPE wizard [
 <!ENTITY % updateDTD SYSTEM "chrome://zotero/locale/mozilla/updates.dtd">
@@ -32,6 +31,10 @@
 <script src="chrome://zotero/content/update/update-header.js"/>
 
 <wizard>
+  <linkset>
+    <html:link rel="localization" href="toolkit/global/wizard.ftl"/>
+  </linkset>
+  
   <stringbundleset id="updateSet">
     <stringbundle id="brandStrings" src="chrome://branding/locale/brand.properties"/>
     <stringbundle id="updateStrings" src="chrome://zotero/locale/mozilla/updates.properties"/>
